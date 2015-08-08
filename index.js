@@ -106,7 +106,7 @@ function Iterator(Model, options) {
     .catch(cb);
 
     return cb.promise;
-  }
+  };
 
   Model.remoteMethod('iterate', {
     accepts: [{
