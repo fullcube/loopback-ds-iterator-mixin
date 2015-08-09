@@ -28,8 +28,6 @@ dbConnector = loopback.memory();
 describe('loopback datasource iterator mixin', function () {
 
   beforeEach(function (done) {
-
-    // A model with 2 Changed properties.
     var Item = this.Item = loopback.PersistedModel.extend('item', {
       name: String,
       description: String,
@@ -37,9 +35,7 @@ describe('loopback datasource iterator mixin', function () {
     }, {
       mixins: {
         Iterator: {
-          options: {
-            itemsPerPage: '3'
-          }
+          itemsPerPage: '3'
         }
       }
     });
@@ -62,53 +58,59 @@ describe('loopback datasource iterator mixin', function () {
     }, 'item' + i);
   }
 
-  describe('Model.find', function () {
-
-    it('Default find operation.', function (done) {
-      this.Item.find().then(function (result) {
-        assert.equal(result.length, 50, 'Should return all items');
-        done();
-      });
-    });
-
-  });
-
   describe('Model.iterate', function () {
     it('should add an iterate method', function (done) {
-      assert.equal(typeof this.Item.iterate, 'function');
+      expect(this.Item.iterate).to.be.a('function');
       done();
     });
-    it('should iterate when calling next()', function (done) {
-      var iterator = this.Item.iterate();
-      iterator
-        .next()
-        .then(function (item) {
-          assert.equal(item.name, 'Item1');
-          return iterator.next();
-        })
-        .then(function (item) {
-          assert.equal(item.name, 'Item2');
-          return iterator.next();
-        })
-        .then(function (item) {
-          assert.equal(item.name, 'Item3');
-          return iterator.next();
-        })
-        .then(function (item) {
-          assert.equal(item.name, 'Item4');
-          done();
-        });
-    });
-  });
 
-  describe('Model.iterate', function () {
     it('should include the total count and current pager details', function (done) {
-      var iterator = this.Item.iterate();
-      assert.equal(iterator.currentItem, 0);
-      assert.equal(Array.isArray(iterator.currentItems), true);
-      assert.equal(iterator.currentItems.length, 0);
-      done();
+      this.Item.iterate()
+        .then(function(iterator) {
+          expect(iterator.currentItem).to.equal(0);
+          expect(iterator.itemsTotal).to.equal(50);
+          expect(iterator.currentItems).to.be.an('array');
+          expect(iterator.currentItems).to.have.length(0);
+          done();
+        })
+        .catch(done);
     });
+
+    it('should filter items using a where query', function (done) {
+      this.Item.iterate({where: {status: 'active'}})
+        .then(function(iterator) {
+          expect(iterator.itemsTotal).to.equal(25);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should iterate when calling next()', function (done) {
+        var iterator;
+        this.Item.iterate()
+        .then(function (res) {
+          iterator = res;
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item1');
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item2');
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item3');
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item4');
+          done();
+        })
+        .catch(done);
+    });
+
   });
 
 });

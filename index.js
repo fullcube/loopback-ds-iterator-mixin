@@ -1,6 +1,7 @@
 var debug = require('debug')('loopback-ds-iterator-mixin');
 var utils = require('loopback-datasource-juggler/lib/utils');
 var assert = require('assert');
+var _ = require('lodash');
 
 function Iterator(Model, options) {
   'use strict';
@@ -13,26 +14,63 @@ function Iterator(Model, options) {
   /**
    * An iterator that will lazy load items from the Datastore.
    */
-  Model.iterate = function(query) {
-    return new Model.Iterator(query);
+  Model.iterate = function(query, cb) {
+    if (typeof query === 'function' && cb === undefined) {
+      cb = query;
+      query = {};
+    }
+    cb = cb || utils.createPromiseCallback();
+
+    var iterator = new Model.Iterator(query)
+      .then(function(iterator) {
+        cb(null, iterator);
+      })
+      .catch(cb);
+
+    return cb.promise;
   };
 
-  Model.Iterator = function(query) {
+  Model.Iterator = function(query, cb) {
+    if (typeof query === 'function' && cb === undefined) {
+      cb = query;
+      query = {};
+    }
+    cb = cb || utils.createPromiseCallback();
     var self = this;
 
-    this.query = query || {};
+    self.query = query || {};
+    self.itemsTotal = -1;
+    self.pageTotal = -1;
+    self.itemsPerPage = parseInt(options.itemsPerPage) || 25;
+    self.itemsFrom = 0;
+    self.itemsTo = 0;
+    self.limit = this.query.limit;
+    self.currentItem = 0;
+    self.currentItems = [];
 
-    this.itemsTotal = -1;
-    this.pageTotal = -1;
+    self.initialize()
+      .then(function() {
+        cb(null, self);
+      })
+      .catch(cb);
 
-    this.itemsPerPage = options.itemsPerPage || 25;
-    this.itemsFrom = 0;
-    this.itemsTo = 0;
+    return cb.promise;
+  };
 
-    this.currentItem = 0;
-    this.currentItems = [];
+  Model.Iterator.prototype.initialize = function(cb) {
+    cb = cb || utils.createPromiseCallback();
+    var self = this;
 
-    this.originalLimit = this.query.limit;
+    var countWhere = self.query.where || {};
+    Model.count(countWhere)
+      .then(function(count) {
+        self.itemsTotal = self.limit ? Math.max(count, self.limit) : count;
+        self.pageTotal = Math.ceil(self.itemsTotal / self.itemsPerPage);
+        cb();
+      })
+      .catch(cb);
+
+    return cb.promise;
   };
 
   Model.Iterator.prototype.next = function(cb) {
@@ -71,27 +109,12 @@ function Iterator(Model, options) {
     debug(debugPrefix, 'Fetching next batch. Current item: %s : Memory usage: %s',
       self.currentItem, (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2), 'Mb');
 
-    new Promise(function(resolve, reject) {
-      // If this is the first time here, count the results.
-      if (self.itemsTotal === -1) {
-        var countWhere = self.query.where || {};
-        Model.count(countWhere)
-          .then(function(count) {
-            self.itemsTotal = Math.max(count, self.originalLimit);
-            self.pageTotal = Math.ceil(self.itemsTotal / self.itemsPerPage);
-            resolve();
-          })
-          .catch(reject);
-      } else {
-        resolve();
-      }
-    })
-    .then(function() {
-      self.query.skip = self.itemsTo;
-      self.query.limit = self.itemsPerPage;
-      return Model.find(self.query);
-    })
+    self.query.skip = self.itemsTo;
+    self.query.limit = self.itemsPerPage;
+
+    Model.find(_.clone(self.query))
     .then(function(data) {
+
       // Update the pager.
       self.itemsFrom = self.query.skip;
       self.itemsTo = self.query.skip + data.length;
@@ -107,26 +130,6 @@ function Iterator(Model, options) {
 
     return cb.promise;
   };
-
-  Model.remoteMethod('iterate', {
-    accepts: [{
-      arg: 'query',
-      type: 'object',
-      required: false,
-      http: {
-        source: 'body'
-      }
-    }],
-    returns: {
-      arg: 'result',
-      type: 'string',
-      root: true
-    },
-    http: {
-      path: '/iterate',
-      verb: 'post'
-    }
-  });
 
 }
 
