@@ -82,16 +82,6 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
 
-    it('should filter items using a where query', function (done) {
-      var iterator = new this.Item.Iterator({where: {status: 'active'}})
-      iterator.initialize()
-        .then(function() {
-          expect(iterator.itemsTotal).to.equal(25);
-          done();
-        })
-        .catch(done);
-    });
-
     it('should iterate when calling next()', function (done) {
       var iterator = new this.Item.Iterator()
       iterator.next()
@@ -113,6 +103,48 @@ describe('loopback datasource iterator mixin', function () {
         })
         .catch(done);
     });
+
+    it('should filter items using a where query', function (done) {
+      var iterator = new this.Item.Iterator({where: {status: 'active'}})
+      iterator.initialize()
+        .then(function() {
+          expect(iterator.itemsTotal).to.equal(25);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should honor a query limit', function (done) {
+      var iterator = new this.Item.Iterator({limit: 2});
+      expect(iterator.limit).to.equal(2);
+      iterator.next()
+        .then(function (item) {
+          expect(item.name).to.equal('Item1');
+          expect(iterator.itemsTotal).to.equal(2);
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item2');
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item).to.equal(undefined);
+          done();
+        })
+        .catch(done);
+    });
+
+    it('should honor a query skip', function (done) {
+      var iterator = new this.Item.Iterator({skip: 2});
+      iterator.next()
+        .then(function (item) {
+          expect(item.name).to.equal('Item3');
+          expect(iterator.itemsFrom).to.equal(2);
+          done();
+        })
+        .catch(done);
+    });
+
   });
 
   describe('Model.iterate', function () {
@@ -120,6 +152,12 @@ describe('loopback datasource iterator mixin', function () {
     it('should return an Iterator instance', function (done) {
       var iterator = this.Item.iterate();
       expect(iterator).to.be.an.instanceof(this.Item.Iterator);
+      done();
+    });
+
+    it('should allow overriding the default batchSize', function (done) {
+      var iterator = this.Item.iterate({}, {batchSize: 5});
+      expect(iterator.batchSize).to.equal(5);
       done();
     });
 

@@ -1,6 +1,7 @@
 var debug = require('debug')('loopback-ds-iterator-mixin');
 var utils = require('loopback-datasource-juggler/lib/utils');
 var assert = require('assert');
+var deprecate = require('util').deprecate;
 var _ = require('lodash');
 
 function Iterator(Model, options) {
@@ -14,19 +15,22 @@ function Iterator(Model, options) {
   /**
    * An iterator that will lazy load items from the Datastore.
    */
-  Model.iterate = function(query) {
-    return new Model.Iterator(query);
+  Model.iterate = function(query, settings) {
+    return new Model.Iterator(query, settings);
   };
 
-  Model.Iterator = function(query) {
+  Model.Iterator = function(query, settings) {
     var self = this;
     self.query = query || {};
+    settings = settings || {};
+
+    self.batchSize = parseInt(settings.batchSize) || parseInt(options.batchSize) || 25;
+
     self.itemsTotal = -1;
     self.pageTotal = -1;
-    self.itemsPerPage = parseInt(options.itemsPerPage) || 25;
-    self.itemsFrom = 0;
-    self.itemsTo = 0;
-    self.limit = this.query.limit;
+    self.itemsFrom = self.query.skip || 0;
+    self.itemsTo = self.itemsFrom;
+    self.limit = self.query.limit;
     self.currentItem = 0;
     self.currentItems = [];
   };
@@ -38,8 +42,8 @@ function Iterator(Model, options) {
     var countWhere = self.query.where || {};
     Model.count(countWhere)
       .then(function(count) {
-        self.itemsTotal = self.limit ? Math.max(count, self.limit) : count;
-        self.pageTotal = Math.ceil(self.itemsTotal / self.itemsPerPage);
+        self.itemsTotal = self.limit ? Math.min(count, self.limit) : count;
+        self.pageTotal = Math.ceil(self.itemsTotal / self.batchSize);
         cb();
       })
       .catch(cb);
@@ -57,7 +61,7 @@ function Iterator(Model, options) {
     }
 
     // Otherwise, return the next result.
-    self.getNextValue()
+    self._getNextValue()
       .then(function(value) {
         cb(null, value);
       })
@@ -66,7 +70,7 @@ function Iterator(Model, options) {
     return cb.promise;
   };
 
-  Model.Iterator.prototype.getNextValue = function(cb) {
+  Model.Iterator.prototype._getNextValue = function(cb) {
     cb = cb || utils.createPromiseCallback();
     var self = this;
 
@@ -95,7 +99,7 @@ function Iterator(Model, options) {
     })
     .then(function() {
       self.query.skip = self.itemsTo;
-      self.query.limit = self.itemsPerPage;
+      self.query.limit = self.batchSize;
 
       return Model.find(_.clone(self.query));
     })
@@ -119,6 +123,6 @@ function Iterator(Model, options) {
 
 }
 
-module.exports = function mixin(app) {
+module.exports = deprecate(function mixin(app) {
   app.loopback.modelBuilder.mixins.define('Iterator', Iterator);
-};
+}, 'DEPRECATED: Use mixinSources, see https://github.com/mrfelton/loopback-ds-iterator-mixin#mixinsources');
