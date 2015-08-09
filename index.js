@@ -14,30 +14,12 @@ function Iterator(Model, options) {
   /**
    * An iterator that will lazy load items from the Datastore.
    */
-  Model.iterate = function(query, cb) {
-    if (typeof query === 'function' && cb === undefined) {
-      cb = query;
-      query = {};
-    }
-    cb = cb || utils.createPromiseCallback();
-
-    var iterator = new Model.Iterator(query)
-      .then(function(iterator) {
-        cb(null, iterator);
-      })
-      .catch(cb);
-
-    return cb.promise;
+  Model.iterate = function(query) {
+    return new Model.Iterator(query);
   };
 
-  Model.Iterator = function(query, cb) {
-    if (typeof query === 'function' && cb === undefined) {
-      cb = query;
-      query = {};
-    }
-    cb = cb || utils.createPromiseCallback();
+  Model.Iterator = function(query) {
     var self = this;
-
     self.query = query || {};
     self.itemsTotal = -1;
     self.pageTotal = -1;
@@ -47,14 +29,6 @@ function Iterator(Model, options) {
     self.limit = this.query.limit;
     self.currentItem = 0;
     self.currentItems = [];
-
-    self.initialize()
-      .then(function() {
-        cb(null, self);
-      })
-      .catch(cb);
-
-    return cb.promise;
   };
 
   Model.Iterator.prototype.initialize = function(cb) {
@@ -109,10 +83,22 @@ function Iterator(Model, options) {
     debug(debugPrefix, 'Fetching next batch. Current item: %s : Memory usage: %s',
       self.currentItem, (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2), 'Mb');
 
-    self.query.skip = self.itemsTo;
-    self.query.limit = self.itemsPerPage;
+    new Promise(function(resolve, reject) {
+      // If this is the first time here, count the results.
+      if (self.itemsTotal === -1) {
+        self.initialize()
+          .then(resolve)
+          .catch(reject);
+      } else {
+        resolve();
+      }
+    })
+    .then(function() {
+      self.query.skip = self.itemsTo;
+      self.query.limit = self.itemsPerPage;
 
-    Model.find(_.clone(self.query))
+      return Model.find(_.clone(self.query));
+    })
     .then(function(data) {
 
       // Update the pager.

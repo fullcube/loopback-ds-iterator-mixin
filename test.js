@@ -58,15 +58,21 @@ describe('loopback datasource iterator mixin', function () {
     }, 'item' + i);
   }
 
-  describe('Model.iterate', function () {
-    it('should add an iterate method', function (done) {
-      expect(this.Item.iterate).to.be.a('function');
-      done();
-    });
+  it('should provide an iterate method', function (done) {
+    expect(this.Item.iterate).to.be.a('function');
+    done();
+  });
 
-    it('should include the total count and current pager details', function (done) {
-      this.Item.iterate()
-        .then(function(iterator) {
+  it('should provide an Iterator class', function (done) {
+    expect(this.Item.Iterator).to.be.a('function');
+    done();
+  });
+
+  describe('Model.Iterator', function () {
+    it('should initialize an iterator with pager and count', function (done) {
+      var iterator = new this.Item.Iterator();
+      iterator.initialize()
+        .then(function() {
           expect(iterator.currentItem).to.equal(0);
           expect(iterator.itemsTotal).to.equal(50);
           expect(iterator.currentItems).to.be.an('array');
@@ -77,8 +83,9 @@ describe('loopback datasource iterator mixin', function () {
     });
 
     it('should filter items using a where query', function (done) {
-      this.Item.iterate({where: {status: 'active'}})
-        .then(function(iterator) {
+      var iterator = new this.Item.Iterator({where: {status: 'active'}})
+      iterator.initialize()
+        .then(function() {
           expect(iterator.itemsTotal).to.equal(25);
           done();
         })
@@ -86,12 +93,8 @@ describe('loopback datasource iterator mixin', function () {
     });
 
     it('should iterate when calling next()', function (done) {
-        var iterator;
-        this.Item.iterate()
-        .then(function (res) {
-          iterator = res;
-          return iterator.next();
-        })
+      var iterator = new this.Item.Iterator()
+      iterator.next()
         .then(function (item) {
           expect(item.name).to.equal('Item1');
           return iterator.next();
@@ -109,6 +112,15 @@ describe('loopback datasource iterator mixin', function () {
           done();
         })
         .catch(done);
+    });
+  });
+
+  describe('Model.iterate', function () {
+
+    it('should return an Iterator instance', function (done) {
+      var iterator = this.Item.iterate();
+      expect(iterator).to.be.an.instanceof(this.Item.Iterator);
+      done();
     });
 
   });
