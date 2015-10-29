@@ -57,7 +57,7 @@ function Iterator(Model, options) {
 
     // If we are already at the end, return nothing,
     if (self.itemsTotal > -1 && self.currentItem >= self.itemsTotal) {
-      cb(null);
+      return cb(null);
     }
 
     // Otherwise, return the next result.
