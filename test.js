@@ -35,7 +35,10 @@ describe('loopback datasource iterator mixin', function () {
     }, {
       mixins: {
         Iterator: {
-          itemsPerPage: '3'
+          batchSize: 5,
+          maxQueueLength: 10,
+          queueWaitInterval: 100,
+          concurrentItems: 25
         }
       }
     });
@@ -50,7 +53,7 @@ describe('loopback datasource iterator mixin', function () {
 
   lt.beforeEach.withApp(app);
 
-  for (var i = 1; i <= 50; i++) {
+  for (var i = 1; i <= 100; i++) {
     lt.beforeEach.givenModel('item', {
       name: 'Item' + i,
       description: 'This is item with id' + i,
@@ -58,32 +61,100 @@ describe('loopback datasource iterator mixin', function () {
     }, 'item' + i);
   }
 
-  it('should provide an iterate method', function (done) {
-    expect(this.Item.iterate).to.be.a('function');
-    done();
+  describe('mixin', function () {
+    it('should provide an iterate method', function () {
+      expect(this.Item.iterate).to.be.a('function');
+    });
+    it('should provide a forEachAsync method', function () {
+      expect(this.Item.forEachAsync).to.be.a('function');
+    });
   });
 
-  it('should provide an Iterator class', function (done) {
-    expect(this.Item.Iterator).to.be.a('function');
-    done();
+  describe('Model.iterate', function () {
+    it('should return an Iterator instance', function () {
+      var iterator = this.Item.iterate();
+      expect(iterator).respondTo('next');
+      expect(iterator).respondTo('forEachAsync');
+    });
+    it('should allow overriding the default batchSize', function () {
+      var iterator = this.Item.iterate({}, {batchSize: 5});
+      expect(iterator.batchSize).to.equal(5);
+    });
   });
 
-  describe('Model.Iterator', function () {
+
+  describe('Model.forEachAsync', function () {
+    it('should process all items sequentially when calling forEachAsync()', function (done) {
+      var count = 1;
+      var fn = function(task, callback) {
+        setTimeout(function() {
+          expect(task.item.name).to.equal('Item'+count);
+          count++;
+          callback();
+        }, 10);
+      }
+      this.Item.forEachAsync({}, fn, {})
+        .then(function () {
+          done();
+        })
+        .catch(done);
+    });
+  });
+
+
+  describe('IteratorCls', function () {
     it('should initialize an iterator with pager and count', function (done) {
-      var iterator = new this.Item.Iterator();
+      var iterator = this.Item.iterate();
       iterator.initialize()
         .then(function() {
           expect(iterator.currentItem).to.equal(0);
-          expect(iterator.itemsTotal).to.equal(50);
+          expect(iterator.itemsTotal).to.equal(100);
           expect(iterator.currentItems).to.be.an('array');
           expect(iterator.currentItems).to.have.length(0);
           done();
         })
         .catch(done);
     });
-
+    it('should filter items using a where query', function (done) {
+      var iterator = this.Item.iterate({where: {status: 'active'}});
+      iterator.initialize()
+        .then(function() {
+          expect(iterator.itemsTotal).to.equal(50);
+          done();
+        })
+        .catch(done);
+    });
+    it('should honor a query limit', function (done) {
+      var iterator = this.Item.iterate({limit: 2});
+      expect(iterator.limit).to.equal(2);
+      iterator.next()
+        .then(function (item) {
+          expect(item.name).to.equal('Item1');
+          expect(iterator.itemsTotal).to.equal(2);
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item.name).to.equal('Item2');
+          return iterator.next();
+        })
+        .then(function (item) {
+          expect(item).to.equal(undefined);
+          done();
+        })
+        .catch(done);
+    });
+    it('should honor a query skip', function (done) {
+      var iterator = this.Item.iterate({skip: 2});
+      iterator.next()
+        .then(function (item) {
+          expect(item.name).to.equal('Item3');
+          expect(iterator.itemsFrom).to.equal(2);
+          done();
+        })
+        .catch(done);
+    });
     it('should iterate when calling next()', function (done) {
-      var iterator = new this.Item.Iterator()
+      var iterator = this.Item.iterate();
       iterator.next()
         .then(function (item) {
           expect(item.name).to.equal('Item1');
@@ -103,64 +174,22 @@ describe('loopback datasource iterator mixin', function () {
         })
         .catch(done);
     });
-
-    it('should filter items using a where query', function (done) {
-      var iterator = new this.Item.Iterator({where: {status: 'active'}})
-      iterator.initialize()
-        .then(function() {
-          expect(iterator.itemsTotal).to.equal(25);
-          done();
-        })
-        .catch(done);
-    });
-
-    it('should honor a query limit', function (done) {
-      var iterator = new this.Item.Iterator({limit: 2});
-      expect(iterator.limit).to.equal(2);
-      iterator.next()
-        .then(function (item) {
-          expect(item.name).to.equal('Item1');
-          expect(iterator.itemsTotal).to.equal(2);
-          return iterator.next();
-        })
-        .then(function (item) {
-          expect(item.name).to.equal('Item2');
-          return iterator.next();
-        })
-        .then(function (item) {
-          expect(item).to.equal(undefined);
-          done();
-        })
-        .catch(done);
-    });
-
-    it('should honor a query skip', function (done) {
-      var iterator = new this.Item.Iterator({skip: 2});
-      iterator.next()
-        .then(function (item) {
-          expect(item.name).to.equal('Item3');
-          expect(iterator.itemsFrom).to.equal(2);
-          done();
-        })
-        .catch(done);
-    });
-
-  });
-
-  describe('Model.iterate', function () {
-
-    it('should return an Iterator instance', function (done) {
+    it('should process all items sequentially when calling forEachAsync()', function (done) {
       var iterator = this.Item.iterate();
-      expect(iterator).to.be.an.instanceof(this.Item.Iterator);
-      done();
+      var count = 1;
+      var fn = function(task, callback) {
+        setTimeout(function() {
+          expect(task.item.name).to.equal('Item'+count);
+          count++;
+          callback();
+        }, 10);
+      }
+      iterator.forEachAsync(fn)
+        .then(function () {
+          done();
+        })
+        .catch(done);
     });
-
-    it('should allow overriding the default batchSize', function (done) {
-      var iterator = this.Item.iterate({}, {batchSize: 5});
-      expect(iterator.batchSize).to.equal(5);
-      done();
-    });
-
   });
 
 });

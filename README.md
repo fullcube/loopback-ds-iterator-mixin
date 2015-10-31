@@ -82,10 +82,23 @@ To use with your Models add the `mixins` attribute to the definition object of y
 BOOT OPTIONS
 =============
 
-The number of items to fetch per page is configurable.  To use different values for the default (100) add the following parameters to the mixin options.
+The mixin provides a number of configurable values that control how and when results are fetched and processed.
 
-In this example we set `batchSize` to 1000.
+The following options are available:
 
+ - **batchSize** (default: 100)  
+   Number of items to fetch from datasource per batch.
+
+ - **maxQueueLength** (default: 50)  
+   The maximum size to allow the queue length to grow to.
+
+ - **queueWaitInterval** (default: 100)  
+   The number of milliseconds to wait until checking wether the queue has drained below *maxQueueLength*.
+
+ - **concurrentItems** (default: 50)  
+   The number of concurrent items to process (used in *forEachAsync*).
+
+To use different values for the default add the following parameters to the mixin options.
 
 ```json
   {
@@ -97,17 +110,22 @@ In this example we set `batchSize` to 1000.
     },
     "mixins": {
       "Iterator": {
-        "batchSize": 1000
+        "batchSize": "100",
+        "maxQueueLength": "50",
+        "queueWaitInterval": "100",
+        "concurrentItems": "50"
       }
     }
   }
 ```
 
+
+
 USAGE
 =============
 
-An `iterate` method will be added to your model class that can be used to iterate over the
-results of a find query.
+An `iterate` method will be added to your model class that can be used to manually iterate over the results of a find
+query.
 
 ```javascript
 var iterator = this.Item.iterate(query)
@@ -122,7 +140,25 @@ iterator.next()
   })
 ```
 
-You can override the default number of items per page (as defined in the mixin configuration) by setting `batchSize` in the optional `settings` parameter.
+Additionally, a `forEachAsync` method will be added to your model class that can be used to iterate over the
+results of a find query. `maxQueueLength`, `queueWaitInterval` & `concurrentItems` options can be used to tune things.
+
+```javascript
+var fn = function(task, callback) {
+  process.nextTick(function() {
+    callback();
+  });
+}
+this.Item.forEachAsync({where: { ... }}, fn, {})
+  .then(function () {
+    done();
+  })
+  .catch(done);
+});
+```
+
+You can override the default configuration options such as the number of items per page (as defined in the mixin
+configuration) by setting the optional `settings` parameter:
 
 ```javascript
 var iterator = this.Item.iterate(query, {batchSize: 1000})
