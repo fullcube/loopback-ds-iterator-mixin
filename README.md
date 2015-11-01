@@ -1,6 +1,8 @@
 ITERATOR
 =============
 
+[![Circle CI](https://circleci.com/gh/fullcube/loopback-ds-iterator-mixin.svg?style=svg)](https://circleci.com/gh/fullcube/loopback-ds-iterator-mixin) [![Coverage Status](https://coveralls.io/repos/fullcube/loopback-ds-iterator-mixin/badge.svg?branch=forEachAsync&service=github)](https://coveralls.io/github/fullcube/loopback-ds-iterator-mixin?branch=forEachAsync) [![Dependencies](http://img.shields.io/david/fullcube/loopback-ds-iterator-mixin.svg?style=flat)](https://david-dm.org/fullcube/loopback-ds-iterator-mixin)
+
 This module is designed for the [Strongloop Loopback](https://github.com/strongloop/loopback) framework. It provides a mixin that makes it easy to iterate through large data sets without leaving a large memory footprint.
 
 Data is fetched in batches, with each batch lazy-loading only when needed. The batch size can be configured by setting the `batchSize` config options.

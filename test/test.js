@@ -1,6 +1,7 @@
 /* jshint mocha: true */
 
 var debug = require('debug')('loopback-ds-iterator-mixin');
+var path = require('path');
 
 var loopback = require('loopback');
 var lt = require('loopback-testing');
@@ -20,7 +21,7 @@ var app = loopback();
 global.Promise = require('bluebird');
 
 // import our Changed mixin.
-require('./')(app);
+require(path.join('..', 'lib'))(app);
 
 // Configure datasource
 dbConnector = loopback.memory();
