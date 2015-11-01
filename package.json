@@ -26,7 +26,7 @@
     "test"
   ],
   "config": {
-    "MOCHA_OPTS": "--recursive test/ --require babel/register --compilers js:babel/register",
+    "MOCHA_OPTS": "-R spec --timeout 10000 --recursive test/ --compilers js:babel-core/register",
     "ISPARTA_OPTS": "--report html",
     "COVERAGE_OPTS": "--statements 100 --functions 100 --branches 100 --lines 100"
   },
@@ -36,11 +36,11 @@
     "lint": "npm run lint-src && npm run lint-test",
     "lint-src": "eslint lib",
     "lint-test": "eslint test --global describe,it,beforeEach,afterEach",
-    "unit": "babel-node -r node_modules/.bin/_mocha $npm_package_config_MOCHA_OPTS",
-    "coverage": "babel-node -r node_modules/.bin/isparta cover $npm_package_config_ISPARTA_OPTS node_modules/.bin/_mocha -- $npm_package_config_MOCHA_OPTS",
-    "coverage-check": "node node_modules/isparta/node_modules/istanbul/lib/cli check-coverage $npm_package_config_COVERAGE_OPTS",
-    "show-report": "node test/open-coverage-report",
-    "test": "npm run lint && npm run coverage && (npm run coverage-check || node scripts/open-coverage-report)"
+    "pretest": "npm run lint",
+    "test": "nyc mocha $npm_package_config_MOCHA_OPTS",
+    "test:watch": "npm run test -- -w",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "outdated": "npm outdated --depth=0"
   },
   "dependencies": {
     "async": "^1.4.x",

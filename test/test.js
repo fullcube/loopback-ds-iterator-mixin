@@ -10,7 +10,7 @@ require('mocha-sinon');
 // Create a new loopback app.
 const app = loopback();
 
-import { it, beforeEach } from 'arrow-mocha';
+import { it, beforeEach } from 'arrow-mocha/es5';
 
 // Set up promise support for loopback in non-ES6 runtime environment.
 global.Promise = require('bluebird');
@@ -58,7 +58,7 @@ describe('loopback datasource iterator mixin', () => {
 
   describe('mixin', () => {
     it('should provide an iterate method', (t) => {
-      expect(t.Item.iterate).to.be.a('.then(() => {');
+      expect(t.Item.iterate).to.be.a('function');
     });
     it('should provide a forEachAsync method', (t) => {
       expect(t.Item.forEachAsync).to.be.a('function');
@@ -127,12 +127,12 @@ describe('loopback datasource iterator mixin', () => {
       expect(iterator.limit).to.equal(2);
       iterator.next()
         .then((item) => {
-          expect(item.name).to.equal('Item1');
+          expect(item.name).to.equal('Item 1');
           expect(iterator.itemsTotal).to.equal(2);
           return iterator.next();
         })
         .then((item) => {
-          expect(item.name).to.equal('Item2');
+          expect(item.name).to.equal('Item 2');
           return iterator.next();
         })
         .then((item) => {
@@ -146,7 +146,7 @@ describe('loopback datasource iterator mixin', () => {
 
       iterator.next()
         .then((item) => {
-          expect(item.name).to.equal('Item3');
+          expect(item.name).to.equal('Item 3');
           expect(iterator.itemsFrom).to.equal(2);
         })
         .then(done)
@@ -157,19 +157,19 @@ describe('loopback datasource iterator mixin', () => {
 
       iterator.next()
         .then((item) => {
-          expect(item.name).to.equal('Item1');
+          expect(item.name).to.equal('Item 1');
           return iterator.next();
         })
         .then((item) => {
-          expect(item.name).to.equal('Item2');
+          expect(item.name).to.equal('Item 2');
           return iterator.next();
         })
         .then((item) => {
-          expect(item.name).to.equal('Item3');
+          expect(item.name).to.equal('Item 3');
           return iterator.next();
         })
         .then((item) => {
-          expect(item.name).to.equal('Item4');
+          expect(item.name).to.equal('Item 4');
         })
         .then(done)
         .catch(done);
@@ -180,7 +180,7 @@ describe('loopback datasource iterator mixin', () => {
 
       iterator.forEachAsync((task, callback) => {
         setTimeout(() => {
-          expect(task.item.name).to.equal(`Item${ count }`);
+          expect(task.item.name).to.equal(`Item ${ count }`);
           count++;
           callback();
         }, 10);
