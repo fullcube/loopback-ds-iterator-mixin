@@ -25,9 +25,14 @@
     "lib",
     "test"
   ],
+  "config": {
+    "MOCHA_OPTS": "--recursive test/ --require babel/register",
+    "ISPARTA_OPTS": "--report html",
+    "COVERAGE_OPTS": "--statements 100 --functions 100 --branches 100 --lines 100"
+  },
   "scripts": {
-    "lint": "jscs lib && jshint lib",
-    "test": "nyc mocha -R spec --timeout 10000 test/test.js",
+    "lint": "jscs --esnext lib && jshint lib",
+    "test": "nyc mocha -R spec --timeout 10000 --compilers js:babel/register test/test.js",
     "test:watch": "npm run test -- -w",
     "pretest": "npm run lint",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
@@ -43,6 +48,9 @@
     "loopback-datasource-juggler": ">=2.30.x"
   },
   "devDependencies": {
+    "babel": "*",
+    "babel-runtime": "*",
+    "babel-preset-es2015": "^6.0.14",
     "bluebird": "latest",
     "chai": "latest",
     "coveralls": "^2.11.4",
@@ -56,5 +64,10 @@
     "nyc": "latest",
     "sinon": "latest",
     "sinon-chai": "latest"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
   }
 }

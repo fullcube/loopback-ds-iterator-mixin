@@ -24,7 +24,7 @@ global.Promise = require('bluebird');
 require(path.join('..', 'lib'))(app);
 
 // Configure datasource
-dbConnector = loopback.memory();
+let dbConnector = loopback.memory();
 
 describe('loopback datasource iterator mixin', function () {
 
