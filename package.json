@@ -26,17 +26,21 @@
     "test"
   ],
   "config": {
-    "MOCHA_OPTS": "--recursive test/ --require babel/register",
+    "MOCHA_OPTS": "--recursive test/ --require babel/register --compilers js:babel/register",
     "ISPARTA_OPTS": "--report html",
     "COVERAGE_OPTS": "--statements 100 --functions 100 --branches 100 --lines 100"
   },
   "scripts": {
-    "lint": "jscs --esnext lib && jshint lib",
-    "test": "nyc mocha -R spec --timeout 10000 --compilers js:babel/register test/test.js",
-    "test:watch": "npm run test -- -w",
-    "pretest": "npm run lint",
-    "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "outdated": "npm outdated --depth=0"
+    "clean": "rimraf ./dist",
+    "build": "babel ./lib --experimental --source-maps-inline -d ./dist",
+    "lint": "npm run lint-src && npm run lint-test",
+    "lint-src": "eslint lib",
+    "lint-test": "eslint test --global describe,it,beforeEach,afterEach",
+    "unit": "babel-node -r node_modules/.bin/_mocha $npm_package_config_MOCHA_OPTS",
+    "coverage": "babel-node -r node_modules/.bin/isparta cover $npm_package_config_ISPARTA_OPTS node_modules/.bin/_mocha -- $npm_package_config_MOCHA_OPTS",
+    "coverage-check": "node node_modules/isparta/node_modules/istanbul/lib/cli check-coverage $npm_package_config_COVERAGE_OPTS",
+    "show-report": "node test/open-coverage-report",
+    "test": "npm run lint && npm run coverage && (npm run coverage-check || node scripts/open-coverage-report)"
   },
   "dependencies": {
     "async": "^1.4.x",
@@ -48,12 +52,13 @@
     "loopback-datasource-juggler": ">=2.30.x"
   },
   "devDependencies": {
-    "babel": "*",
-    "babel-runtime": "*",
     "babel-preset-es2015": "^6.0.14",
     "bluebird": "latest",
     "chai": "latest",
     "coveralls": "^2.11.4",
+    "eslint": "latest",
+    "eslint-config-strict": "^6.0.1",
+    "isparta": "latest",
     "jscs": "latest",
     "jshint": "latest",
     "loopback": ">=2.22.0",
