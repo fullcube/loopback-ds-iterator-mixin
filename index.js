@@ -21,7 +21,7 @@ function Iterator(Model, settings) {
    * An iterator that will lazy load items from the Datastore.
    */
   Model.iterate = function(query, options) {
-    return new IteratorCls(Model, query, options);
+    return new IteratorCls(Model, query, _.defaults(options, settings));
   };
 
   /**
@@ -29,175 +29,175 @@ function Iterator(Model, settings) {
    */
   Model.forEachAsync = function(query, fn, options, cb) {
     cb = cb || utils.createPromiseCallback();
-    var iterator = new IteratorCls(Model, query, options);
+    var iterator = Model.iterate(query, options);
     iterator.forEachAsync(fn, cb);
     return cb.promise;
   };
 
-  function IteratorCls(Model, query, options) {
-    var self = this;
-    self.Model = Model;
-    self.query = query || {};
-    options = options || {};
+}
 
-    _.assign(self, _.defaults(options ,settings, {
-      debugPrefix: '',
-      batchSize: 100,
-      maxQueueLength: 50,
-      queueWaitInterval: 100,
-      concurrentItems: 50
-    }));
+function IteratorCls(Model, query, options) {
+  var self = this;
+  self.Model = Model;
+  self.query = query || {};
+  options = options || {};
 
-    self.itemsFrom = self.query.skip || 0;
-    self.itemsTo = self.itemsFrom;
-    self.limit = self.query.limit;
+  _.assign(self, _.defaults(options, {
+    debugPrefix: '',
+    batchSize: 100,
+    maxQueueLength: 50,
+    queueWaitInterval: 100,
+    concurrentItems: 50
+  }));
 
-    self.initialized = false;
-    self.itemsTotal;
-    self.pageTotal;
-    self.currentItem = 0;
-    self.currentItems = [];
+  self.itemsFrom = self.query.skip || 0;
+  self.itemsTo = self.itemsFrom;
+  self.limit = self.query.limit;
 
-    self.queue = undefined;
+  self.initialized = false;
+  self.itemsTotal;
+  self.pageTotal;
+  self.currentItem = 0;
+  self.currentItems = [];
+
+  self.queue = undefined;
+}
+
+IteratorCls.prototype.initialize = function(cb) {
+  cb = cb || utils.createPromiseCallback();
+  var self = this;
+
+  if (self.initialized) {
+    process.nextTick(function() {
+      cb();
+    });
+    return cb.promise;
   }
 
-  IteratorCls.prototype.initialize = function(cb) {
-    cb = cb || utils.createPromiseCallback();
-    var self = this;
+  debug(self.debugPrefix, 'Initializing');
+  var countWhere = self.query.where || {};
+  self.Model.count(countWhere)
+    .then(function(count) {
+    self.itemsTotal = self.limit ? Math.min(count, self.limit) : count;
+    self.pageTotal = Math.ceil(self.itemsTotal / self.batchSize);
+    self.initialized = true;
+    cb();
+  })
+  .catch(cb);
 
-    if (self.initialized) {
-      process.nextTick(function() {
-        cb();
-      });
-      return cb.promise;
-    }
+  return cb.promise;
+};
 
-    debug(self.debugPrefix, 'Initializing');
-    var countWhere = self.query.where || {};
-    self.Model.count(countWhere)
-      .then(function(count) {
-      self.itemsTotal = self.limit ? Math.min(count, self.limit) : count;
-      self.pageTotal = Math.ceil(self.itemsTotal / self.batchSize);
-      self.initialized = true;
-      cb();
+IteratorCls.prototype.next = function(cb) {
+  cb = cb || utils.createPromiseCallback();
+  var self = this;
+
+  // If we are already at the end, return nothing,
+  if (self.initialized && self.currentItem >= self.itemsTotal) {
+    process.nextTick(function() {
+      cb(null);
+    });
+    return cb.promise;
+  }
+
+  // Otherwise, return the next result.
+  self._getNextValue()
+    .then(function(value) {
+      cb(null, value);
     })
     .catch(cb);
 
+  return cb.promise;
+};
+
+IteratorCls.prototype._getNextValue = function(cb) {
+  cb = cb || utils.createPromiseCallback();
+  var self = this;
+
+  // If we already have some results, return the next one.
+  if (self.currentItems.length) {
+    process.nextTick(function() {
+      self.currentItem++;
+      cb(null, self.currentItems.shift());
+    });
     return cb.promise;
-  };
+  }
 
-  IteratorCls.prototype.next = function(cb) {
-    cb = cb || utils.createPromiseCallback();
-    var self = this;
+  // Fetch the next page of results if there are some.
+  debug(self.debugPrefix + 'Fetching next batch. Current item: %s : Memory usage: %s',
+    self.currentItem, (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2), 'Mb');
 
-    // If we are already at the end, return nothing,
-    if (self.initialized && self.currentItem >= self.itemsTotal) {
-      process.nextTick(function() {
-        cb(null);
-      });
-      return cb.promise;
-    }
+  self.initialize()
+    .then(function() {
+      self.query.skip = self.itemsTo;
+      self.query.limit = self.batchSize;
+      return self.Model.find(_.clone(self.query));
+    })
+    .then(function(data) {
 
-    // Otherwise, return the next result.
-    self._getNextValue()
-      .then(function(value) {
-        cb(null, value);
-      })
-      .catch(cb);
+      // Update the pager.
+      self.itemsFrom = self.query.skip;
+      self.itemsTo = self.query.skip + data.length;
 
-    return cb.promise;
-  };
+      // Store the current item set.
+      self.currentItems = data;
 
-  IteratorCls.prototype._getNextValue = function(cb) {
-    cb = cb || utils.createPromiseCallback();
-    var self = this;
+      // Return the next item.
+      self.currentItem++;
+      cb(null, self.currentItems.shift());
+    })
+    .catch(cb);
 
-    // If we already have some results, return the next one.
-    if (self.currentItems.length) {
-      process.nextTick(function() {
-        self.currentItem++;
-        cb(null, self.currentItems.shift());
-      });
-      return cb.promise;
-    }
+  return cb.promise;
+};
 
-    // Fetch the next page of results if there are some.
-    debug(self.debugPrefix + 'Fetching next batch. Current item: %s : Memory usage: %s',
-      self.currentItem, (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2), 'Mb');
+IteratorCls.prototype.forEachAsync = function(fn, cb) {
+  cb = cb || utils.createPromiseCallback();
+  var self = this;
 
-    self.initialize()
-      .then(function() {
-        self.query.skip = self.itemsTo;
-        self.query.limit = self.batchSize;
-        return self.Model.find(_.clone(self.query));
-      })
-      .then(function(data) {
+  debug(self.debugPrefix + 'Total items to process: %s', self.itemsTotal);
 
-        // Update the pager.
-        self.itemsFrom = self.query.skip;
-        self.itemsTo = self.query.skip + data.length;
+  // Create a queue that will process upto concurrentItems concurrent items using fn.
+  self.queue = async.queue(fn, self.concurrentItems);
 
-        // Store the current item set.
-        self.currentItems = data;
+  // Iterate over the records.
+  iterators.forEachAsync(self, function(err, item, cb) {
 
-        // Return the next item.
-        self.currentItem++;
-        cb(null, self.currentItems.shift());
-      })
-      .catch(cb);
-
-    return cb.promise;
-  };
-
-  IteratorCls.prototype.forEachAsync = function(fn, cb) {
-    cb = cb || utils.createPromiseCallback();
-    var self = this;
-
-    debug(self.debugPrefix + 'Total items to process: %s', self.itemsTotal);
-
-    // Create a queue that will process upto concurrentItems concurrent items using fn.
-    self.queue = async.queue(fn, self.concurrentItems);
-
-    // Iterate over the records.
-    iterators.forEachAsync(self, function(err, item, cb) {
-
-      // Queue each item for processing.
-      self.queue.push({
-        item: item,
-        iterator: self
-      });
-
-      // Prevent the queue from adding more items that it can process concurrently.
-      async.whilst(
-        function() {
-          return self.queue.length() > self.maxQueueLength;
-        },
-        function(callback) {
-          setTimeout(callback, self.queueWaitInterval);
-        },
-        function(err) {
-          process.nextTick(function() {
-            cb();
-          });
-        }
-      );
-
-    }, function() {
-      // The last item from the iterator has been processed.
-      // Wait for the queue finish processong items before moving on.
-      async.whilst(
-        self.queue.running,
-        function(callback) {
-          setTimeout(callback, self.queueWaitInterval);
-        },
-        cb
-      );
+    // Queue each item for processing.
+    self.queue.push({
+      item: item,
+      iterator: self
     });
 
-    return cb.promise;
-  };
+    // Prevent the queue from adding more items that it can process concurrently.
+    async.whilst(
+      function() {
+        return self.queue.length() > self.maxQueueLength;
+      },
+      function(callback) {
+        setTimeout(callback, self.queueWaitInterval);
+      },
+      function(err) {
+        process.nextTick(function() {
+          cb();
+        });
+      }
+    );
 
-}
+  }, function() {
+    // The last item from the iterator has been processed.
+    // Wait for the queue finish processong items before moving on.
+    async.whilst(
+      self.queue.running,
+      function(callback) {
+        setTimeout(callback, self.queueWaitInterval);
+      },
+      cb
+    );
+  });
+
+  return cb.promise;
+};
 
 module.exports = deprecate(function mixin(app) {
   app.loopback.modelBuilder.mixins.define('Iterator', Iterator);
