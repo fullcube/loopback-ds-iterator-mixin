@@ -2,7 +2,7 @@
   "name": "loopback-ds-iterator-mixin",
   "description": "A mixin to enable easy iteration for a loopback Model.",
   "version": "1.0.1",
-  "main": "index.js",
+  "main": "./lib/index.js",
   "author": "Tom Kirkpatrick @mrfelton",
   "contributors": [
     "Bram Borggreve @beeman"
@@ -16,7 +16,7 @@
     "strongloop",
     "mixin"
   ],
-  "license" : "MIT",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/fullcube/loopback-ds-iterator-mixin/issues"
   },
@@ -25,7 +25,6 @@
     "lib",
     "test"
   ],
-  "main": "./lib/index.js",
   "scripts": {
     "lint": "jscs lib && jshint lib",
     "test": "nyc mocha -R spec --timeout 10000 test/test.js",
@@ -46,7 +45,7 @@
   "devDependencies": {
     "bluebird": "latest",
     "chai": "latest",
-    "chai": "latest",
+    "coveralls": "^2.11.4",
     "jscs": "latest",
     "jshint": "latest",
     "loopback": ">=2.22.0",
