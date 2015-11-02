@@ -1,7 +1,7 @@
 {
   "name": "loopback-ds-iterator-mixin",
   "description": "A mixin to enable easy iteration for a loopback Model.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "./lib/index.js",
   "author": "Tom Kirkpatrick @mrfelton",
   "contributors": [
