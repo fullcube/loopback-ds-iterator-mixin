@@ -37,6 +37,7 @@
     "async": "^1.4.x",
     "async-iterators": "0.2.2",
     "debug": "2.x",
+    "depd": "^1.1.0",
     "lodash": "^3.9.x"
   },
   "peerDependencies": {

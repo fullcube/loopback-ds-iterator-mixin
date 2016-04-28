@@ -14,9 +14,8 @@ INSTALL
 npm install --save loopback-ds-iterator-mixin
 ```
 
-MIXINSOURCES
+CONFIG
 =============
-With [loopback-boot@v2.8.0](https://github.com/strongloop/loopback-boot/)  [mixinSources](https://github.com/strongloop/loopback-boot/pull/131) have been implemented in a way which allows for loading this mixin without changes to the `server.js` file previously required.
 
 Add the `mixins` property to your `server/model-config.json` like the following:
 
@@ -31,38 +30,13 @@ Add the `mixins` property to your `server/model-config.json` like the following:
     ],
     "mixins": [
       "loopback/common/mixins",
-      "../node_modules/loopback-ds-iterator-mixin",
+      "../node_modules/loopback-ds-iterator-mixin/lib",
       "../common/mixins"
     ]
   }
 }
-```
 
-SERVER.JS
-=============
-
-DEPRECATED: See MIXINSOURCES above for configuration. Use this method ONLY if you cannot upgrade to loopback-boot@v2.8.0.
-
-In your `server/server.js` file add the following line before the `boot(app, __dirname);` line.
-
-```javascript
-...
-var app = module.exports = loopback();
-...
-// Add Iterator Mixin to loopback
-require('loopback-ds-iterator-mixin')(app);
-
-boot(app, __dirname, function(err) {
-  'use strict';
-  if (err) throw err;
-
-  // start the server if `$ node server.js`
-  if (require.main === module)
-    app.start();
-});
-```
-
-CONFIG
+MODEL CONFIG
 =============
 
 To use with your Models add the `mixins` attribute to the definition object of your model config.
