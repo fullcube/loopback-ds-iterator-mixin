@@ -155,5 +155,5 @@ Run the tests in `test.js`
 Run with debugging output on:
 
 ```bash
-  DEBUG='loopback-ds-iterator-mixin' npm test
+  DEBUG='loopback:mixin:iterator' npm test
 ```
