@@ -1,7 +1,7 @@
 {
   "name": "loopback-ds-iterator-mixin",
   "description": "A mixin to enable easy iteration for a loopback Model.",
-  "version": "1.0.4",
+  "version": "0.0.0-development",
   "main": "./lib/index.js",
   "author": "Tom Kirkpatrick @mrfelton",
   "contributors": [
@@ -31,7 +31,8 @@
     "test:watch": "npm run test -- -w",
     "pretest": "npm run lint",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "outdated": "npm outdated --depth=0"
+    "outdated": "npm outdated --depth=0",
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "dependencies": {
     "async": "^2.3.0",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "bluebird": "latest",
     "chai": "latest",
+    "condition-circle": "^1.5.0",
     "coveralls": "^2.13.0",
     "jscs": "latest",
     "jshint": "latest",
@@ -51,7 +53,11 @@
     "mocha": "latest",
     "mocha-sinon": "latest",
     "nyc": "latest",
+    "semantic-release": "^6.3.2",
     "sinon": "latest",
     "sinon-chai": "latest"
+  },
+  "release": {
+    "verifyConditions": "condition-circle"
   }
 }
