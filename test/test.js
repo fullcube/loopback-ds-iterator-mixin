@@ -26,31 +26,29 @@ require(path.join('..', 'lib'))(app);
 // Configure datasource
 dbConnector = loopback.memory();
 
+
+var Item = loopback.PersistedModel.extend('item', {
+  name: String,
+  description: String,
+  status: String
+}, {
+  mixins: {
+    Iterator: {
+      batchSize: 5,
+      maxQueueLength: 10,
+      queueWaitInterval: 100,
+      concurrentItems: 25
+    }
+  }
+});
+
+Item.attachTo(dbConnector);
+app.model(Item);
+
+app.use(loopback.rest());
+app.set('legacyExplorer', false);
+
 describe('loopback datasource iterator mixin', function () {
-
-  beforeEach(function (done) {
-    var Item = this.Item = loopback.PersistedModel.extend('item', {
-      name: String,
-      description: String,
-      status: String
-    }, {
-      mixins: {
-        Iterator: {
-          batchSize: 5,
-          maxQueueLength: 10,
-          queueWaitInterval: 100,
-          concurrentItems: 25
-        }
-      }
-    });
-
-    Item.attachTo(dbConnector);
-    app.model(Item);
-
-    app.use(loopback.rest());
-    app.set('legacyExplorer', false);
-    done();
-  });
 
   lt.beforeEach.withApp(app);
 
@@ -64,21 +62,21 @@ describe('loopback datasource iterator mixin', function () {
 
   describe('mixin', function () {
     it('should provide an iterate method', function () {
-      expect(this.Item.iterate).to.be.a('function');
+      expect(Item.iterate).to.be.a('function');
     });
     it('should provide a forEachAsync method', function () {
-      expect(this.Item.forEachAsync).to.be.a('function');
+      expect(Item.forEachAsync).to.be.a('function');
     });
   });
 
   describe('Model.iterate', function () {
     it('should return an Iterator instance', function () {
-      var iterator = this.Item.iterate();
+      var iterator = Item.iterate();
       expect(iterator).respondTo('next');
       expect(iterator).respondTo('forEachAsync');
     });
     it('should allow overriding the default batchSize', function () {
-      var iterator = this.Item.iterate({}, {batchSize: 5});
+      var iterator = Item.iterate({}, {batchSize: 5});
       expect(iterator.batchSize).to.equal(5);
     });
   });
@@ -94,7 +92,7 @@ describe('loopback datasource iterator mixin', function () {
           callback();
         }, 10);
       }
-      this.Item.forEachAsync({}, fn, {})
+      Item.forEachAsync({}, fn, {})
         .then(function () {
           done();
         })
@@ -105,7 +103,7 @@ describe('loopback datasource iterator mixin', function () {
 
   describe('IteratorCls', function () {
     it('should initialize an iterator with pager and count', function (done) {
-      var iterator = this.Item.iterate();
+      var iterator = Item.iterate();
       iterator.initialize()
         .then(function() {
           expect(iterator.currentItem).to.equal(0);
@@ -117,7 +115,7 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
     it('should filter items using a where query', function (done) {
-      var iterator = this.Item.iterate({where: {status: 'active'}});
+      var iterator = Item.iterate({where: {status: 'active'}});
       iterator.initialize()
         .then(function() {
           expect(iterator.itemsTotal).to.equal(50);
@@ -126,7 +124,7 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
     it('should honor a query limit', function (done) {
-      var iterator = this.Item.iterate({limit: 2});
+      var iterator = Item.iterate({limit: 2});
       expect(iterator.limit).to.equal(2);
       iterator.next()
         .then(function (item) {
@@ -145,7 +143,7 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
     it('should honor a query skip', function (done) {
-      var iterator = this.Item.iterate({skip: 2});
+      var iterator = Item.iterate({skip: 2});
       iterator.next()
         .then(function (item) {
           expect(item.name).to.equal('Item3');
@@ -155,7 +153,7 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
     it('should iterate when calling next()', function (done) {
-      var iterator = this.Item.iterate();
+      var iterator = Item.iterate();
       iterator.next()
         .then(function (item) {
           expect(item.name).to.equal('Item1');
@@ -176,7 +174,7 @@ describe('loopback datasource iterator mixin', function () {
         .catch(done);
     });
     it('should process all items sequentially when calling forEachAsync()', function (done) {
-      var iterator = this.Item.iterate();
+      var iterator = Item.iterate();
       var count = 1;
       var fn = function(task, callback) {
         setTimeout(function() {
