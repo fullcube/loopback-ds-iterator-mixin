@@ -34,24 +34,20 @@
     "outdated": "npm outdated --depth=0"
   },
   "dependencies": {
-    "async": "^1.4.x",
+    "async": "^2.3.0",
     "async-iterators": "0.2.2",
-    "debug": "2.x",
+    "debug": "^2.6.4",
     "depd": "^1.1.0",
-    "lodash": "^3.9.x"
-  },
-  "peerDependencies": {
-    "loopback-datasource-juggler": ">=2.30.x"
+    "lodash": "^4.17.4"
   },
   "devDependencies": {
     "bluebird": "latest",
     "chai": "latest",
-    "coveralls": "^2.11.4",
+    "coveralls": "^2.13.0",
     "jscs": "latest",
     "jshint": "latest",
-    "loopback": ">=2.22.0",
-    "loopback-datasource-juggler": ">=2.30.x",
-    "loopback-testing": "1.2.0",
+    "loopback": "^3.8.0",
+    "loopback-testing": "^1.4.0",
     "mocha": "latest",
     "mocha-sinon": "latest",
     "nyc": "latest",
