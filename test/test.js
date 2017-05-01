@@ -1,6 +1,5 @@
 /* jshint mocha: true */
 
-var debug = require('debug')('loopback-ds-iterator-mixin');
 var path = require('path');
 
 var loopback = require('loopback');
