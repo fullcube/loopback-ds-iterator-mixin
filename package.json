@@ -53,11 +53,8 @@
     "loopback": "^3.8.0",
     "loopback-testing": "^1.4.0",
     "mocha": "latest",
-    "mocha-sinon": "latest",
     "nyc": "latest",
-    "semantic-release": "^6.3.2",
-    "sinon": "latest",
-    "sinon-chai": "latest"
+    "semantic-release": "^6.3.2"
   },
   "config": {
     "commitTypeMap": {

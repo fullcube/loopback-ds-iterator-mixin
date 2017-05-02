@@ -11,15 +11,11 @@ chai.use(require('dirty-chai'))
 // Create a new loopback app.
 const app = loopback()
 
-// Set up promise support for loopback in non-ES6 runtime environment.
-global.Promise = require('bluebird')
-
-// import our Changed mixin.
+// import our mixin.
 require(path.join('..', 'lib'))(app)
 
-// Configure datasource
+// Configure datasource.
 const dbConnector = loopback.memory()
-
 
 const Item = loopback.PersistedModel.extend('item', {
   name: String,
