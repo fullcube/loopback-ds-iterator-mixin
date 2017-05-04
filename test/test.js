@@ -4,7 +4,7 @@ const path = require('path')
 const loopback = require('loopback')
 const lt = require('loopback-testing')
 const chai = require('chai')
-const expect = chai.expect
+const { expect } = chai
 
 chai.use(require('dirty-chai'))
 
