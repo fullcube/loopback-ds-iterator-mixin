@@ -49,7 +49,7 @@
     "coveralls": "^2.13.0",
     "dirty-chai": "^1.2.2",
     "eslint-config-fullcube": "^2.0.0",
-    "loopback": "^3.8.0",
+    "loopback": "^3.22.3",
     "loopback-testing": "^1.4.0",
     "mocha": "latest",
     "nyc": "latest",
