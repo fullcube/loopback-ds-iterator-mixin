@@ -36,7 +36,7 @@
   "dependencies": {
     "async": "^2.3.0",
     "async-iterators": "0.2.2",
-    "debug": "^2.6.4",
+    "debug": "^4.1.1",
     "depd": "^1.1.0",
     "lodash": "^4.17.4"
   },
