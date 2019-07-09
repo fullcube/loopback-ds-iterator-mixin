@@ -38,7 +38,7 @@
     "async-iterators": "0.2.2",
     "debug": "^2.6.4",
     "depd": "^1.1.0",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.13"
   },
   "devDependencies": {
     "@bubltechnology/customizable-commit-analyzer": "^1.0.2-0",
