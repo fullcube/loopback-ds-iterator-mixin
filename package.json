@@ -34,7 +34,7 @@
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "dependencies": {
-    "async": "^2.3.0",
+    "async": "^3.2.0",
     "async-iterators": "0.2.2",
     "debug": "^2.6.4",
     "depd": "^1.1.0",
